@@ -1,0 +1,35 @@
+# ============================================
+# VLAN 100 Bridge + DHCP (RouterOS Script)
+# ============================================
+
+# 1) Create bridge (VLAN-aware)
+/interface bridge
+add name=VLAN_Bridge pvid=1 vlan-filtering=yes
+
+# 2) Add ether3 as an access port for VLAN 100
+/interface bridge port
+add bridge=VLAN_Bridge interface=ether3 pvid=100
+
+# 3) Create VLAN interface (SVI) on the bridge
+/interface vlan
+add name=VLAN_100 interface=VLAN_Bridge vlan-id=100
+
+# 4) Assign IP address to VLAN 100 interface
+/ip address
+add address=192.168.88.1/24 interface=VLAN_100
+
+# 5) Create DHCP pool for VLAN 100
+/ip pool
+add name=VLAN_100 ranges=192.168.88.100-192.168.88.200
+
+# 6) Create DHCP server on VLAN 100
+/ip dhcp-server
+add name=VLAN_100 interface=VLAN_100 address-pool=VLAN_100 disabled=no
+
+# 7) Define DHCP network options for VLAN 100
+/ip dhcp-server network
+add address=192.168.88.0/24 gateway=192.168.88.1 dns-server=192.168.88.1 comment="VLAN_100"
+
+# 8) NAT masquerade for internet access (WAN on ether1)
+/ip firewall nat
+add chain=srcnat out-interface=ether1 action=masquerade comment="Masquerade"
